@@ -17,6 +17,9 @@ import { SqliteService } from 'src/providers/sqlite.service';
 import { Geolocation } from '@capacitor/geolocation';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { SquliteSupportProviderService } from 'src/providers/squlite-support-provider.service';
+import { CustomAlertControlService } from 'src/providers/custom-alert-control.service';
+import { CustomLoadingControlService } from 'src/providers/custom-loading-control.service';
+import { ApplicationStateService } from 'src/providers/application-state.service';
 declare var cordova: any;
 declare var window: any;
 @Component({
@@ -43,6 +46,9 @@ export class AppComponent {
     public sqliteSuportProvider: SquliteSupportProviderService,
     public platform: Platform,
     public menuCtrl: MenuController,
+    public alertService: CustomAlertControlService,
+    public loadingService: CustomLoadingControlService,
+    public as: ApplicationStateService
   ) {
     this.pages = [
       {
@@ -63,7 +69,7 @@ export class AppComponent {
       {
         title: 'Audit Log',
         component: '/audit-logs',
-        icon: 'reader'
+        icon: 'reader',
       },
     ];
     this.initializeApp();
@@ -107,32 +113,35 @@ export class AppComponent {
     } catch (error) {
       console.log('Get Location:', error.message);
 
-      this.globFunc.globalLodingPresent(error.message);
+      this.loadingService.globalLodingPresent(error.message);
     }
   }
 
   async logout() {
     if (this.network.type == 'none' || this.network.type == 'unknown') {
-      this.globFunc.showAlert('Alert!', 'Check your network data Connection');
+      this.alertService.showAlert(
+        'Alert!',
+        'Check your network data Connection'
+      );
     } else {
-      this.globalData
+      this.alertService
         .confirmationAlert('Confirm logout?', 'Are you sure to logout?')
         .then(async (data) => {
           this.userGroupsName = [];
           if (data == 'Yes') {
-            this.globFunc.globalLodingPresent('Logging out...');
+            this.loadingService.globalLodingPresent('Logging out...');
             this.menuCtrl.close();
             await this.router.navigate(['/login'], {
               skipLocationChange: true,
               replaceUrl: true,
             });
-            this.globFunc.globalLodingDismiss();
+            this.loadingService.globalLodingDismiss();
           } else {
-            this.globFunc.globalLodingDismiss();
+            this.loadingService.globalLodingDismiss();
           }
         })
         .catch((Error) => {
-          this.globFunc.globalLodingDismiss();
+          this.loadingService.globalLodingDismiss();
         });
     }
   }
@@ -188,7 +197,7 @@ export class AppComponent {
           this.router.url.includes('/JsfhomePage') ||
           this.router.url == '/JsfhomePage'
         ) {
-          this.globFunc.logout().then((data) => {
+          this.alertService.logout().then((data) => {
             if (data === 'ok') {
               this.callLogOut();
             }
@@ -306,16 +315,16 @@ export class AppComponent {
                   {
                     text: 'No',
                     role: 'cancel',
-                    handler: () => { },
+                    handler: () => {},
                   },
                   {
                     text: 'Yes',
                     handler: () => {
                       this.sqliteSuportProvider.removeEkycData(
-                        this.globalData.getLeadId(),
+                        this.globalData.getLeadId()
                       );
                       this.sqliteSuportProvider.removeKarzaData(
-                        this.globalData.getLeadId(),
+                        this.globalData.getLeadId()
                       );
                       this.router.navigate(['/ExistApplicationsPage'], {
                         skipLocationChange: true,
@@ -339,10 +348,10 @@ export class AppComponent {
                   {
                     text: 'OK',
                     handler: () => {
-                      let refId = this.globFunc.getScoreCardChecked();
+                      let refId = this.as.scoreCardChecked;
                       this.sqliteProvider.updateScoreCardinPostsanctionWhileQuit(
                         'N',
-                        refId,
+                        refId
                       );
                       this.router.navigate(['/ExistApplicationsPage'], {
                         skipLocationChange: true,
@@ -394,7 +403,8 @@ export class AppComponent {
   }
 
   async openPage(page) {
-    if (this.pages[4]) this.pages[4].title === page.title ? this.pages : this.pages.splice(4);
+    if (this.pages[4])
+      this.pages[4].title === page.title ? this.pages : this.pages.splice(4);
     this.router.navigate([page.component], {
       queryParams: {
         _leadStatus: 'online',
@@ -415,9 +425,9 @@ export class AppComponent {
       function (val) {
         if (val == true) {
           // p_this.global.presentAlert(this.alertErrorLabel.AlertLabels.USB_Debugging_Enabled, this.alertErrorLabel.AlertLabels.Application_Not_Working_this_Environment);
-          p_this.globFunc.showAlert(
+          p_this.alertService.showAlert(
             'USB Debugging Enabled!',
-            'Application will not be working on this environment.',
+            'Application will not be working on this environment.'
           );
           setTimeout(() => {
             navigator['app'].exitApp();
@@ -429,7 +439,7 @@ export class AppComponent {
       function (error) {
         console.log('error ===>' + error);
         navigator['app'].exitApp();
-      },
+      }
     );
 
     cordova.plugins.pdfmake.checkPdfFshow('netstat', function (res) {
@@ -437,9 +447,9 @@ export class AppComponent {
         let fridaavailable = res.output.includes('frida');
         if (fridaavailable == true) {
           // p_this.global.presentAlert(this.alertErrorLabel.AlertLabels.Frida_Detected, this.alertErrorLabel.AlertLabels.Application_Not_Working_this_Environment);
-          p_this.globFunc.showAlert(
+          p_this.alertService.showAlert(
             'Frida Detected!',
-            'Application will not be working on this environment.',
+            'Application will not be working on this environment.'
           );
           setTimeout(() => {
             navigator['app'].exitApp();
@@ -460,9 +470,9 @@ export class AppComponent {
     cordova.plugins.pdfmake.checkPdfVinfo(
       function (val) {
         if (val == true) {
-          p_this.globFunc.showAlert(
+          p_this.alertService.showAlert(
             'Virtual Device!',
-            'Application will not be working on this environment.',
+            'Application will not be working on this environment.'
           );
           setTimeout(() => {
             navigator['app'].exitApp();
@@ -471,7 +481,7 @@ export class AppComponent {
       },
       function (error) {
         navigator['app'].exitApp();
-      },
+      }
     );
   }
 }

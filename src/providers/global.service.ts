@@ -1,10 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
-import {
-  AlertController,
-  LoadingController,
-  ModalController,
-  ToastController,
-} from '@ionic/angular';
+import { ModalController, ToastController } from '@ionic/angular';
 import { Device } from '@awesome-cordova-plugins/device/ngx';
 import { HTTP } from '@awesome-cordova-plugins/http/ngx';
 import * as CryptoJS from 'crypto-js';
@@ -25,59 +20,41 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { CropImageComponent } from 'src/app/components/crop-image/crop-image.component';
 declare var google: any;
 import { Plugins } from '@capacitor/core';
+import { CustomAlertControlService } from './custom-alert-control.service';
+import { CustomLoadingControlService } from './custom-loading-control.service';
+import { ApplicationStateService } from './application-state.service';
 const { WebPConvertor } = Plugins;
 
 @Injectable({
   providedIn: 'root',
 })
 export class GlobalService {
-  sys_token: string;
-  _img: any;
-  _loading: boolean = false;
-  _stateMaster: any;
-  _cityMaster: any;
-  _productList: any;
-  _Gender: any;
-  _IncomeType: any;
-  _Employment: any;
-  _InterestType: any;
-  _Title: any;
-  _RelationShip: any;
-  _appStatus: any;
-  _selectedCities: any;
-  _branch: any;
-  _docList: any;
   _wifi?: any;
   _battery?: any;
   _gps?: any;
-  _borrower: any;
-  applicationDataChangeDetector = [];
   _alertCtrl: any;
 
   uploadStatus = new Subject();
   reRunScoreCard = new Subject();
 
   _sk = 'sysarc@1234INFO@';
-  _refId: any;
   subscription: Subscription;
   gpsStatus: any = new BehaviorSubject<any>(undefined);
   battery: any = new BehaviorSubject<any>(undefined);
   wifiStatus: any = new BehaviorSubject<any>(undefined);
 
   constructor(
-    public alertCtrl: AlertController,
-    public loadingCtrl: LoadingController,
     public zone: NgZone,
-    public loadCtrl: LoadingController,
     private network: Network,
     public http: HTTP,
     public device: Device,
     public batteryStatus: BatteryStatus,
     private diagnostic: Diagnostic,
-    public modalCtrl: ModalController
+    public modalCtrl: ModalController,
+    public alertService: CustomAlertControlService,
+    public loadingService: CustomLoadingControlService,
+    public as: ApplicationStateService
   ) {
-    this.getSystemDate();
-    this.getTimestamp();
     setInterval(() => this.statusbarValuesForPages(), 3000);
     // window.addEventListener("batterystatus", this.onBatteryStatus, false);
   }
@@ -85,34 +62,6 @@ export class GlobalService {
   // onBatteryStatus(status) {
   //   console.log("Level: " + status.level + " isPlugged: " + status.isPlugged);
   // }
-  getOtherimg() {
-    return this._img;
-  }
-
-  setOtherimg(value) {
-    // console.log("other img value ==>" + value);
-    this._img = value;
-  }
-  getTimestamp() {
-    let date = new Date();
-    let n = date.toDateString();
-    let time = date.toLocaleTimeString();
-    let timestamp = n + ' ' + time;
-    //console.log("timestamp"+timestamp);
-    return timestamp;
-  }
-  getSystemDate() {
-    let sysDate = new Date();
-    //console.log("sysDate"+sysDate);
-    return sysDate;
-  }
-
-  getDeviceId() {
-    return this.device.uuid;
-  }
-  getAndroidV() {
-    return this.device.version;
-  }
 
   async getPackageName() {
     return await (
@@ -120,164 +69,8 @@ export class GlobalService {
     ).id;
   }
 
-  // async globalAlert(tittle, subtitle) {
-  //   if (!this._alertCtrl) {
-  //     this._alertCtrl = this.alertCtrl.create({
-  //       header: tittle,
-  //       subHeader: subtitle,
-  //       // buttons: ['OK']
-  //       buttons: [
-  //         {
-  //           text: 'Ok',
-  //           role: 'cancel',
-  //           handler: () => {
-  //             this._alertCtrl.dismiss();
-  //             this._alertCtrl = null;
-  //           },
-  //         },
-  //       ],
-  //     });
-  //     await this._alertCtrl.present();
-  //   }
-  // }
-
-  // async globalLodingPresent(loadingContent: string) {
-  //   if (!this._loading) {
-  //     this._loading = this.loadingCtrl.create({
-  //       spinner: 'bubbles',
-  //       // content: `${loadingContent}`,
-  //       cssClass: 'spinnerCss'
-  //     });
-  //     await this._loading.present();
-  //   }
-  // }
-
-  async globalLodingPresent(msg, time?) {
-    this._loading = true;
-    return await this.loadingCtrl
-      .create({
-        message: msg,
-        duration: time,
-        spinner: 'circles',
-        cssClass: 'custom-loading',
-      })
-      .then((a) => {
-        a.present().then(() => {
-          if (!this._loading) {
-            a.dismiss().then(() => console.log('abort presenting'));
-          }
-        });
-      });
-  }
-
-  async globalLodingDismiss() {
-    this._loading = false;
-    return await this.loadingCtrl
-      .dismiss()
-      .then(() => console.log('dismissed'));
-  }
-
-  // async globalLodingDismiss() {
-  //   if (this._loading) {
-  //     await this._loading.dismiss();
-  //     this._loading = null;
-  //   }
-  // }
-
   /* Nidheesh Source */
 
-  getFullStateMaster() {
-    return this._stateMaster;
-  }
-
-  setFullCityMaster(value) {
-    this._cityMaster = value;
-  }
-  getFullCityMaster() {
-    return this._cityMaster;
-  }
-
-  setFullStateMaster(value) {
-    this._stateMaster = value;
-  }
-  getFullProductList() {
-    return this._productList;
-  }
-
-  setFullProductList(value) {
-    this._productList = value;
-  }
-
-  getGenderList() {
-    return this._Gender;
-  }
-
-  setGenderList(value) {
-    this._Gender = value;
-  }
-
-  getIncomeTypeList() {
-    return this._IncomeType;
-  }
-
-  setIncomeTypeList(value) {
-    this._IncomeType = value;
-  }
-  getEmployementList() {
-    return this._Employment;
-  }
-
-  setEmployementList(value) {
-    this._Employment = value;
-  }
-  getTitleList() {
-    return this._Title;
-  }
-
-  setTitleList(value) {
-    this._Title = value;
-  }
-  setDocumentList(val) {
-    this._docList = val;
-  }
-  getDocumentList() {
-    return this._docList;
-  }
-  getRelationShipList() {
-    return this._RelationShip;
-  }
-
-  setRelationShipList(value) {
-    this._RelationShip = value;
-  }
-  getInterestRateType() {
-    return this._InterestType;
-  }
-
-  setInterestRateType(value) {
-    this._InterestType = value;
-  }
-
-  setApplicationSubStatus(val) {
-    this._appStatus = val;
-  }
-  getApplicationSubStatus() {
-    return this._appStatus;
-  }
-
-  setScoreCardChecked(val) {
-    this._refId = val;
-  }
-  getScoreCardChecked() {
-    return this._refId;
-  }
-
-  setBranchCode(val) {
-    this._branch = val;
-  }
-  getBranchCode() {
-    return this._branch;
-  }
   getGlobalConstants = function (value) {
     let constantValue;
     if (value == 'DocCode') {
@@ -286,31 +79,6 @@ export class GlobalService {
 
     return constantValue;
   };
-  filterStateItems(searchTerm) {
-    return this._stateMaster.filter((item) => {
-      return (
-        item.sgmStateName.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
-      );
-    });
-  }
-  filterCityItems(search) {
-    return this._selectedCities.filter((item) => {
-      return item.sgmCityName.toLowerCase().indexOf(search.toLowerCase()) > -1;
-    });
-  }
-  filterDocItems(search) {
-    return this._docList.filter((item) => {
-      return (
-        item.doc_description.toLowerCase().indexOf(search.toLowerCase()) > -1
-      );
-    });
-  }
-  setSelectedCities(val) {
-    this._selectedCities = val;
-  }
-  getSelectedCities() {
-    return this._selectedCities;
-  }
 
   reverseGeocode(lat: number, lng: number): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -503,22 +271,6 @@ export class GlobalService {
     this._batteryStatus();
   }
 
-  getLocalUrlEndpoint() {
-    let localUrl = {
-      url: 'http://192.168.0.91:9081/laps/rest/LOSMobileRestServices/',
-      local: true,
-    };
-    return localUrl;
-  }
-
-  getMasterSubmitUrlEndpoint() {
-    let masSub = {
-      url: 'http://192.168.0.91:9081/laps/rest/LOSMobileRestServices/',
-      local: true,
-    };
-    return masSub;
-  }
-
   _pusblishHardwareBackButtonClicked = new Subject<string>();
   _publishPageNavigation = new Subject<string>();
   _JanaEmployee = new Subject<string>();
@@ -548,30 +300,6 @@ export class GlobalService {
   ekycDismiss(data) {
     this.eKycDismissed.next(data);
   }
-  getapplicationDataChangeDetector() {
-    return this.applicationDataChangeDetector;
-  }
-
-  setapplicationDataChangeDetector(formActivatorStatus, pagename) {
-    let page: any;
-    let pageIndex: number;
-    page = this.applicationDataChangeDetector.find((f, index) => {
-      return f.pageName === pagename;
-    });
-    pageIndex = this.applicationDataChangeDetector.indexOf(page);
-    // alert(`page= ${JSON.stringify(page)} === pageindex ${pageIndex}`);
-    if (pageIndex == -1) {
-      this.applicationDataChangeDetector.push({
-        pageName: pagename,
-        changeDetected: formActivatorStatus,
-      });
-      //  alert(`this.applicationDataChangeDetector= ${JSON.stringify(this.applicationDataChangeDetector)}`);
-    } else {
-      this.applicationDataChangeDetector[pageIndex].pageName = pagename;
-      this.applicationDataChangeDetector[pageIndex].changeDetected =
-        formActivatorStatus;
-    }
-  }
 
   // _GpsStatus() {
   //   this.diagnostic.isGpsLocationAvailable().then((isAvailable) => {
@@ -599,29 +327,6 @@ export class GlobalService {
   //   // console.log(`inside statusbarValues`);
   //   // this.events.publish('statusBar', this._battery, this._wifi, this._gps);
   // }
-
-  resetapplicationDataChangeDetector() {
-    this.applicationDataChangeDetector = [];
-    // alert(`reseting array length => ${this.applicationDataChangeDetector.length}`);
-  }
-
-  async showAlert(tittle, subtitle, message?: string, buttons?: any[]) {
-    const alert = await this.alertCtrl.create({
-      header: tittle,
-      subHeader: subtitle,
-      message: message,
-      buttons: this._buttonBehaviour(buttons),
-    });
-    await alert.present();
-  }
-
-  _buttonBehaviour(buttons?: any[]) {
-    if (buttons) {
-      return buttons;
-    } else {
-      return ['OK'];
-    }
-  }
 
   encMyReq(val) {
     if (val != '' && val != null && val != undefined) {
@@ -683,13 +388,6 @@ export class GlobalService {
     }
   }
 
-  genToken() {
-    let timestamp = new Date().getTime();
-    let RanNum = Math.floor(Math.random() * 90000000) + 10000000;
-    this.sys_token = timestamp.toString() + '_' + RanNum.toString();
-    return this.sys_token;
-  }
-
   basicEnc(val) {
     if (val != '' && val != null && val != undefined) {
       return 'MV_+' + window.btoa(val);
@@ -705,10 +403,6 @@ export class GlobalService {
     }
   }
 
-  getToken() {
-    return this.sys_token;
-  }
-
   uploadImgFailed(value) {
     this.uploadStatus.next(value);
   }
@@ -716,24 +410,6 @@ export class GlobalService {
   setRerunScoreCard(value) {
     this.reRunScoreCard.next(value);
     console.log('Value ', value);
-  }
-
-  confirmationVersionAlert(title, message, page?): Promise<any> {
-    return new Promise(async (resolve, reject) => {
-      let alert = await this.alertCtrl.create({
-        header: title,
-        message,
-        buttons: [
-          {
-            text: 'OK',
-            handler: () => {
-              resolve(true);
-            },
-          },
-        ],
-      });
-      alert.present();
-    });
   }
 
   getCertPinningStatus() {
@@ -817,7 +493,7 @@ export class GlobalService {
         cropComponent.present();
         cropComponent.onDidDismiss().then(async (data) => {
           if (data.data == 'data:,') {
-            this.showAlert('Alert', 'Please again take photo');
+            this.alertService.showAlert('Alert', 'Please again take photo');
           } else if (data) {
             let path = data.data.replace('data:image/jpeg;base64,', '');
             let size = path.length / 1024;
@@ -832,7 +508,7 @@ export class GlobalService {
               console.log('imageData for UploadConsent', data.data);
               resolve(data.data.replace('data:image/jpeg;base64,', ''));
             } else {
-              this.showAlert(
+              this.alertService.showAlert(
                 'Alert',
                 'Image Size should be lesser then (2-MB),Please Capture again!'
               );
@@ -873,7 +549,7 @@ export class GlobalService {
         const imageData = url;
         const filePath = `WebPImage/Doc${time}.jpg`;
         const directory =
-          +this.getAndroidV() > 10 ? Directory.Documents : Directory.External;
+          +this.as.androidV > 10 ? Directory.Documents : Directory.External;
         await Filesystem.writeFile({
           path: filePath,
           data: imageData,
@@ -897,7 +573,7 @@ export class GlobalService {
       return new Promise(async (resolve, reject) => {
         const filePath = path;
         const directory =
-          +this.getAndroidV() > 10 ? Directory.Documents : Directory.External;
+          +this.as.androidV > 10 ? Directory.Documents : Directory.External;
         const image = await Filesystem.readFile({
           path: filePath,
           directory: directory,
@@ -912,41 +588,10 @@ export class GlobalService {
     }
   }
 
-  async logout() {
-    let alert = await new AlertController().create({
-      header: 'Alert',
-      message: 'Are you sure to logout?',
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel',
-          cssClass: 'secondary',
-          handler: () => {
-            console.log('cancel');
-          },
-        },
-        {
-          text: 'Sure',
-          role: 'ok',
-          handler: () => {
-            // navigator["app"].exitApp();
-            // new MenuController().close();
-            // this.logout.next('logout');
-            // this.router.navigate(['/login'], { skipLocationChange: true, replaceUrl: true });
-            // localStorage.removeItem("keys")
-          },
-        },
-      ],
-    });
-    await alert.present();
-    const { role } = await alert.onDidDismiss();
-    return role;
-  }
-
   getDroomAccessToken() {
     try {
       return new Promise((resolve, reject) => {
-        this.globalLodingPresent('Please Wait...');
+        this.loadingService.globalLodingPresent('Please Wait...');
         let link = `https://apig.droom.in/dss/v1/oauth/token`;
         let body = {
           grant_type: 'password',
@@ -961,7 +606,7 @@ export class GlobalService {
           if (res.access_token.length > 0) {
             localStorage.setItem('access_token', res.access_token);
             localStorage.setItem('refresh_token', res.refresh_token);
-            this.globalLodingDismiss();
+            this.loadingService.globalLodingDismiss();
             resolve(true);
           }
         });
@@ -973,11 +618,11 @@ export class GlobalService {
 
   async convertToWebPTest(data, sizeReq?: number) {
     try {
-      this.globalLodingPresent('Please Wait...');
+      this.loadingService.globalLodingPresent('Please Wait...');
       let webpResult;
       let folderImage = data;
       const path =
-        +this.getAndroidV() > 10
+        +this.as.androidV > 10
           ? `/storage/emulated/0/Documents/${data}`
           : `/storage/emulated/0/Android/data/com.jfs.vlwebp/files/${data}`;
       if (WebPConvertor) {
@@ -998,7 +643,7 @@ export class GlobalService {
           if (size <= sizeReq) {
             webpResult = { path: pathData, size: size };
             this.saveImageInFolder(webpResult.path);
-            this.globalLodingDismiss();
+            this.loadingService.globalLodingDismiss();
             return webpResult;
           } else {
             let imgName = `data:image/jpeg;base64,${pathData}`;
@@ -1008,9 +653,9 @@ export class GlobalService {
           }
         }
       }
-      this.globalLodingDismiss();
+      this.loadingService.globalLodingDismiss();
     } catch (e) {
-      this.globalLodingDismiss();
+      this.loadingService.globalLodingDismiss();
       alert(`Error From WebPConvertor Plugin => ${e}`);
     }
   }
@@ -1033,7 +678,7 @@ export class GlobalService {
       }
       if (finalsize) return true;
       else
-        this.showAlert(
+        this.alertService.showAlert(
           'Alert',
           `Image Size should be lesser then ( ${requiredSize}.KB),Please Capture again!`
         );
@@ -1044,7 +689,7 @@ export class GlobalService {
 
   onFileSelect(event) {
     if (event.target.files && event.target.files[0]) {
-      this.globalLodingPresent('Please Wait...');
+      this.loadingService.globalLodingPresent('Please Wait...');
       var filename = event.target.files[0].name.toString().replace(/ /gi, '_');
       let fileExtn = filename.split('.')[1];
       var fileType = event.target.files[0].type;

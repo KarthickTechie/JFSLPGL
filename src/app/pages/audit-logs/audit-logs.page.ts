@@ -10,6 +10,8 @@ import { RestService } from 'src/providers/rest.service';
 import { SqliteService } from 'src/providers/sqlite.service';
 import { SquliteSupportProviderService } from 'src/providers/squlite-support-provider.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { CustomAlertControlService } from 'src/providers/custom-alert-control.service';
+import { CustomLoadingControlService } from 'src/providers/custom-loading-control.service';
 
 @Component({
   selector: 'app-audit-logs',
@@ -55,7 +57,9 @@ export class AuditLogsPage implements OnInit {
     // public viewCtrl: ViewController,
     private appVersion: AppVersion,
     private globFunc: GlobalService,
-    public sqlSupport: SquliteSupportProviderService
+    public sqlSupport: SquliteSupportProviderService,
+    public alertService: CustomAlertControlService,
+    public loadingService: CustomLoadingControlService
   ) {
     this.auditLog = this.formBuilder.group({
       typeOfLog: ['', Validators.compose([Validators.required])],
@@ -93,9 +97,9 @@ export class AuditLogsPage implements OnInit {
     let auditLog = [],
       errorLog = [];
     if (this.network.type == 'none' || this.network.type == 'unknown') {
-      this.globalData.showAlert('Alert!', 'Enable internet connection!');
+      this.alertService.showAlert('Alert!', 'Enable internet connection!');
     } else {
-      this.globalData.globalLodingPresent('Please wait...');
+      this.loadingService.globalLodingPresent('Please wait...');
       if (value.typeOfLog == 1) {
         auditLog = await this.sqliteProvider.getAuditTrailbydate(value);
       } else {
@@ -114,8 +118,8 @@ export class AuditLogsPage implements OnInit {
         this.deviceId = errorLog[0].deviceID;
         this.frameRequest();
       } else {
-        this.globalData.globalLodingDismiss();
-        this.globalData.showAlert('Alert', 'No records found!');
+        this.loadingService.globalLodingDismiss();
+        this.alertService.showAlert('Alert', 'No records found!');
       }
     }
   }
@@ -140,7 +144,7 @@ export class AuditLogsPage implements OnInit {
         this.generateLogs(0);
         // // this.auditLogCall(this.auditReq);
         // this.createlogfile().then(data => {
-        //   this.globalData.globalLodingDismiss();
+        //   this.loadingService.globalLodingDismiss();
         // })
       }
     }
@@ -156,18 +160,18 @@ export class AuditLogsPage implements OnInit {
     this.master.restApiCallAngular('UpdateAuditLog', this.logReqData).then(
       (data) => {
         if ((<any>data).ErrorStatus == 'Success') {
-          this.globalData.globalLodingDismiss();
-          this.globalData.showAlert('Success', 'Log sent successfully');
+          this.loadingService.globalLodingDismiss();
+          this.alertService.showAlert('Success', 'Log sent successfully');
           this.navCtrl.pop();
         } else if ((<any>data).ErrorStatus == 'Failure') {
-          this.globalData.globalLodingDismiss();
-          this.globalData.showAlert('Failed', 'Log sent Failed');
+          this.loadingService.globalLodingDismiss();
+          this.alertService.showAlert('Failed', 'Log sent Failed');
         }
       },
       (err) => {
-        this.globalData.globalLodingDismiss();
+        this.loadingService.globalLodingDismiss();
         console.log('err: ' + JSON.stringify(err));
-        this.globalData.showAlert('Alert!', 'No response from the server!');
+        this.alertService.showAlert('Alert!', 'No response from the server!');
       }
     );
   }
@@ -231,7 +235,7 @@ export class AuditLogsPage implements OnInit {
   //       })
   //     });
   //   // } catch (error) {
-  //   //   this.globalData.globalLodingDismiss();
+  //   //   this.loadingService.globalLodingDismiss();
   //   //   console.log(error);
   //   // }
 
@@ -256,11 +260,11 @@ export class AuditLogsPage implements OnInit {
   //       this.generateLogs(ilen);
   //     }
   //     else {
-  //       this.globalData.globalLodingDismiss();
-  //       this.globalData.showAlert("Alert!", `Audit Logs Generated Successfully at location ${file + "AUDITLOGS/" + this.logFileName}`);
+  //       this.loadingService.globalLodingDismiss();
+  //       this.alertService.showAlert("Alert!", `Audit Logs Generated Successfully at location ${file + "AUDITLOGS/" + this.logFileName}`);
   //     }
   //   })
-  //   this.globalData.globalLodingDismiss();
+  //   this.loadingService.globalLodingDismiss();
   // }
 
   /**
@@ -294,9 +298,9 @@ export class AuditLogsPage implements OnInit {
         encoding: Encoding.UTF8,
         recursive: true,
       });
-      this.globalData.globalLodingDismiss();
+      this.loadingService.globalLodingDismiss();
       console.log('writeLogFile', writetheFile);
-      this.globFunc.showAlert('Alert', 'Logs Generated Successfully');
+      this.alertService.showAlert('Alert', 'Logs Generated Successfully');
       // return writetheFile
     }
   }
@@ -350,13 +354,13 @@ export class AuditLogsPage implements OnInit {
         ilen = ilen + 1;
         this.generateLogs(ilen);
       } else {
-        this.globalData.globalLodingDismiss();
+        this.loadingService.globalLodingDismiss();
         this.createLogFile(this.auditlogarray);
         // this.global.presentAlert("Alert!", `Audit Logs Generated Successfully at location ${this.file.externalApplicationStorageDirectory + "AUDITLOGS/" + this.logFileName}`);
       }
     } catch (error) {
       // this.errorHandling.errorLog(error, "AuditLogComponent-generateLogs")
-      this.globalData.globalLodingDismiss();
+      this.loadingService.globalLodingDismiss();
     }
   }
 }
