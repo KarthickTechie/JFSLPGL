@@ -1,10 +1,5 @@
 import { Injectable, NgZone } from '@angular/core';
-import {
-  AlertController,
-  LoadingController,
-  ModalController,
-  ToastController,
-} from '@ionic/angular';
+import { ModalController, ToastController } from '@ionic/angular';
 import { Device } from '@awesome-cordova-plugins/device/ngx';
 import { HTTP } from '@awesome-cordova-plugins/http/ngx';
 import * as CryptoJS from 'crypto-js';
@@ -25,6 +20,8 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { CropImageComponent } from 'src/app/components/crop-image/crop-image.component';
 declare var google: any;
 import { Plugins } from '@capacitor/core';
+import { CustomAlertControlService } from './custom-alert-control.service';
+import { CustomLoadingControlService } from './custom-loading-control.service';
 const { WebPConvertor } = Plugins;
 
 @Injectable({
@@ -33,7 +30,6 @@ const { WebPConvertor } = Plugins;
 export class GlobalService {
   sys_token: string;
   _img: any;
-  _loading: boolean = false;
   _stateMaster: any;
   _cityMaster: any;
   _productList: any;
@@ -65,16 +61,15 @@ export class GlobalService {
   wifiStatus: any = new BehaviorSubject<any>(undefined);
 
   constructor(
-    public alertCtrl: AlertController,
-    public loadingCtrl: LoadingController,
     public zone: NgZone,
-    public loadCtrl: LoadingController,
     private network: Network,
     public http: HTTP,
     public device: Device,
     public batteryStatus: BatteryStatus,
     private diagnostic: Diagnostic,
-    public modalCtrl: ModalController
+    public modalCtrl: ModalController,
+    public alertService: CustomAlertControlService,
+    public loadingService: CustomLoadingControlService
   ) {
     this.getSystemDate();
     this.getTimestamp();
@@ -119,70 +114,6 @@ export class GlobalService {
       await App.getInfo()
     ).id;
   }
-
-  // async globalAlert(tittle, subtitle) {
-  //   if (!this._alertCtrl) {
-  //     this._alertCtrl = this.alertCtrl.create({
-  //       header: tittle,
-  //       subHeader: subtitle,
-  //       // buttons: ['OK']
-  //       buttons: [
-  //         {
-  //           text: 'Ok',
-  //           role: 'cancel',
-  //           handler: () => {
-  //             this._alertCtrl.dismiss();
-  //             this._alertCtrl = null;
-  //           },
-  //         },
-  //       ],
-  //     });
-  //     await this._alertCtrl.present();
-  //   }
-  // }
-
-  // async globalLodingPresent(loadingContent: string) {
-  //   if (!this._loading) {
-  //     this._loading = this.loadingCtrl.create({
-  //       spinner: 'bubbles',
-  //       // content: `${loadingContent}`,
-  //       cssClass: 'spinnerCss'
-  //     });
-  //     await this._loading.present();
-  //   }
-  // }
-
-  async globalLodingPresent(msg, time?) {
-    this._loading = true;
-    return await this.loadingCtrl
-      .create({
-        message: msg,
-        duration: time,
-        spinner: 'circles',
-        cssClass: 'custom-loading',
-      })
-      .then((a) => {
-        a.present().then(() => {
-          if (!this._loading) {
-            a.dismiss().then(() => console.log('abort presenting'));
-          }
-        });
-      });
-  }
-
-  async globalLodingDismiss() {
-    this._loading = false;
-    return await this.loadingCtrl
-      .dismiss()
-      .then(() => console.log('dismissed'));
-  }
-
-  // async globalLodingDismiss() {
-  //   if (this._loading) {
-  //     await this._loading.dismiss();
-  //     this._loading = null;
-  //   }
-  // }
 
   /* Nidheesh Source */
 
@@ -605,24 +536,6 @@ export class GlobalService {
     // alert(`reseting array length => ${this.applicationDataChangeDetector.length}`);
   }
 
-  async showAlert(tittle, subtitle, message?: string, buttons?: any[]) {
-    const alert = await this.alertCtrl.create({
-      header: tittle,
-      subHeader: subtitle,
-      message: message,
-      buttons: this._buttonBehaviour(buttons),
-    });
-    await alert.present();
-  }
-
-  _buttonBehaviour(buttons?: any[]) {
-    if (buttons) {
-      return buttons;
-    } else {
-      return ['OK'];
-    }
-  }
-
   encMyReq(val) {
     if (val != '' && val != null && val != undefined) {
       let encryptedMessage = CryptoJS.AES.encrypt(val, this._sk);
@@ -718,24 +631,6 @@ export class GlobalService {
     console.log('Value ', value);
   }
 
-  confirmationVersionAlert(title, message, page?): Promise<any> {
-    return new Promise(async (resolve, reject) => {
-      let alert = await this.alertCtrl.create({
-        header: title,
-        message,
-        buttons: [
-          {
-            text: 'OK',
-            handler: () => {
-              resolve(true);
-            },
-          },
-        ],
-      });
-      alert.present();
-    });
-  }
-
   getCertPinningStatus() {
     return new Promise((resolve, reject) => {
       this.http.setServerTrustMode('nocheck').then(
@@ -817,7 +712,7 @@ export class GlobalService {
         cropComponent.present();
         cropComponent.onDidDismiss().then(async (data) => {
           if (data.data == 'data:,') {
-            this.showAlert('Alert', 'Please again take photo');
+            this.alertService.showAlert('Alert', 'Please again take photo');
           } else if (data) {
             let path = data.data.replace('data:image/jpeg;base64,', '');
             let size = path.length / 1024;
@@ -832,7 +727,7 @@ export class GlobalService {
               console.log('imageData for UploadConsent', data.data);
               resolve(data.data.replace('data:image/jpeg;base64,', ''));
             } else {
-              this.showAlert(
+              this.alertService.showAlert(
                 'Alert',
                 'Image Size should be lesser then (2-MB),Please Capture again!'
               );
@@ -912,41 +807,10 @@ export class GlobalService {
     }
   }
 
-  async logout() {
-    let alert = await new AlertController().create({
-      header: 'Alert',
-      message: 'Are you sure to logout?',
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel',
-          cssClass: 'secondary',
-          handler: () => {
-            console.log('cancel');
-          },
-        },
-        {
-          text: 'Sure',
-          role: 'ok',
-          handler: () => {
-            // navigator["app"].exitApp();
-            // new MenuController().close();
-            // this.logout.next('logout');
-            // this.router.navigate(['/login'], { skipLocationChange: true, replaceUrl: true });
-            // localStorage.removeItem("keys")
-          },
-        },
-      ],
-    });
-    await alert.present();
-    const { role } = await alert.onDidDismiss();
-    return role;
-  }
-
   getDroomAccessToken() {
     try {
       return new Promise((resolve, reject) => {
-        this.globalLodingPresent('Please Wait...');
+        this.loadingService.globalLodingPresent('Please Wait...');
         let link = `https://apig.droom.in/dss/v1/oauth/token`;
         let body = {
           grant_type: 'password',
@@ -961,7 +825,7 @@ export class GlobalService {
           if (res.access_token.length > 0) {
             localStorage.setItem('access_token', res.access_token);
             localStorage.setItem('refresh_token', res.refresh_token);
-            this.globalLodingDismiss();
+            this.loadingService.globalLodingDismiss();
             resolve(true);
           }
         });
@@ -973,7 +837,7 @@ export class GlobalService {
 
   async convertToWebPTest(data, sizeReq?: number) {
     try {
-      this.globalLodingPresent('Please Wait...');
+      this.loadingService.globalLodingPresent('Please Wait...');
       let webpResult;
       let folderImage = data;
       const path =
@@ -998,7 +862,7 @@ export class GlobalService {
           if (size <= sizeReq) {
             webpResult = { path: pathData, size: size };
             this.saveImageInFolder(webpResult.path);
-            this.globalLodingDismiss();
+            this.loadingService.globalLodingDismiss();
             return webpResult;
           } else {
             let imgName = `data:image/jpeg;base64,${pathData}`;
@@ -1008,9 +872,9 @@ export class GlobalService {
           }
         }
       }
-      this.globalLodingDismiss();
+      this.loadingService.globalLodingDismiss();
     } catch (e) {
-      this.globalLodingDismiss();
+      this.loadingService.globalLodingDismiss();
       alert(`Error From WebPConvertor Plugin => ${e}`);
     }
   }
@@ -1033,7 +897,7 @@ export class GlobalService {
       }
       if (finalsize) return true;
       else
-        this.showAlert(
+        this.alertService.showAlert(
           'Alert',
           `Image Size should be lesser then ( ${requiredSize}.KB),Please Capture again!`
         );
@@ -1044,7 +908,7 @@ export class GlobalService {
 
   onFileSelect(event) {
     if (event.target.files && event.target.files[0]) {
-      this.globalLodingPresent('Please Wait...');
+      this.loadingService.globalLodingPresent('Please Wait...');
       var filename = event.target.files[0].name.toString().replace(/ /gi, '_');
       let fileExtn = filename.split('.')[1];
       var fileType = event.target.files[0].type;
